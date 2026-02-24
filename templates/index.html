@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Теплоконтроль — онлайн мониторинг теплоснабжения</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ HERO ══ -->
+<section id="hero" class="hero">
+  <video class="hero__video" id="hero-video" autoplay muted loop playsinline>
+    <source src="/static/badcc47f-381a-40b1-9983-ec6f42ecd0de.mp4" type="video/mp4" />
+  </video>
+  <div class="hero__overlay"></div>
+
+  <button class="hero__sound" id="sound-btn" aria-label="Включить звук" title="Включить звук">
+    <!-- muted icon (default) -->
+    <svg id="icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+    </svg>
+    <!-- unmuted icon (hidden by default) -->
+    <svg id="icon-sound" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+    </svg>
+  </button>
+
+  <div class="hero__content">
+    <h1 class="hero__title">Онлайн мониторинг<br>теплоснабжения МКД</h1>
+    <p class="hero__subtitle">Держите параметры под контролем в реальном времени&nbsp;—<br>из любого браузера, круглосуточно</p>
+  </div>
+  <button class="hero__arrow" aria-label="Листать вниз" onclick="scrollToSection('pain')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+         stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  </button>
+</section>
+
+<!-- ══════════════════════════════════════ PAIN POINTS ══ -->
+<section id="pain" class="pain">
+  <div class="container">
+    <h2 class="section-title">Знакомые проблемы?</h2>
+    <div class="pain__grid">
+      {% for p in pain_points %}
+      <div class="pain__card">
+        <span class="pain__icon">{{ p.icon }}</span>
+        <h3 class="pain__card-title">{{ p.title }}</h3>
+        <p class="pain__card-text">{{ p.text }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="pain__cta">
+      <button class="btn btn--primary" onclick="scrollToSection('plans')">Оформи подписку</button>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════ PLANS ══ -->
+<section id="plans" class="plans">
+  <div class="container">
+    <h2 class="section-title">Выберите тариф</h2>
+    <div class="plans__grid">
+      {% for plan in plans %}
+      <div class="plan-card {% if plan.highlight %}plan-card--highlight{% endif %}"
+           data-plan-id="{{ plan.id }}"
+           data-plan-name="{{ plan.name }}"
+           data-plan-price="{{ plan.price }}">
+        {% if plan.highlight %}
+        <div class="plan-card__badge">Популярный</div>
+        {% endif %}
+        <h3 class="plan-card__name">{{ plan.name }}</h3>
+        <div class="plan-card__price">{{ plan.price }}</div>
+        <ul class="plan-card__features">
+          {% for f in plan.features %}
+          <li>{{ f }}</li>
+          {% endfor %}
+        </ul>
+        <button class="btn {% if plan.highlight %}btn--primary{% else %}btn--outline{% endif %} plan-card__btn">
+          Выбрать
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Inline order form (hidden until plan selected) -->
+    <div id="order-form-wrap" class="order-form-wrap hidden">
+      <form id="order-form" class="order-form" novalidate>
+        <input type="hidden" name="plan_id" id="f-plan-id" />
+        <input type="hidden" name="plan_name" id="f-plan-name" />
+
+        <h3 class="order-form__title">
+          Оформление тарифа: <span id="f-plan-label"></span>
+        </h3>
+
+        <div class="order-form__fields">
+          <label class="field">
+            <span>Ваше имя *</span>
+            <input type="text" name="name" id="f-name" placeholder="Иван Иванов" required />
+          </label>
+          <label class="field">
+            <span>Телефон *</span>
+            <input type="tel" name="phone" id="f-phone" placeholder="+7 (___) ___-__-__" required />
+          </label>
+          <label class="field">
+            <span>Email</span>
+            <input type="email" name="email" id="f-email" placeholder="you@example.com" />
+          </label>
+        </div>
+
+        <div class="order-form__actions">
+          <button type="submit" class="btn btn--primary">Отправить заявку</button>
+          <button type="button" class="btn btn--ghost" id="order-cancel">Отмена</button>
+        </div>
+
+        <p id="order-msg" class="order-form__msg hidden"></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ FOOTER ══ -->
+<footer class="footer">
+  <div class="footer__contacts">
+    <a href="tel:{{ contacts.phone | replace(' ', '') | replace('(', '') | replace(')', '') | replace('-', '') }}">
+      {{ contacts.phone }}
+    </a>
+    <a href="mailto:{{ contacts.email }}">{{ contacts.email }}</a>
+  </div>
+  <p class="footer__copy">&copy; 2026 Теплоконтроль. Все права защищены.</p>
+</footer>
+
+<script src="/static/main.js"></script>
+</body>
+</html>
