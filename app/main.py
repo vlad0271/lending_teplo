@@ -83,6 +83,19 @@ async def order(
                 },
                 "capture": True,
                 "description": f"Подписка «{plan_name}» — {name}",
+                "receipt": {
+                    "customer": {"email": email, "phone": phone},
+                    "items": [
+                        {
+                            "description": f"Подписка «{plan_name}»",
+                            "quantity": "1.00",
+                            "amount": {"value": f"{price:.2f}", "currency": "RUB"},
+                            "vat_code": 7,
+                            "payment_mode": "full_payment",
+                            "payment_subject": "service",
+                        }
+                    ],
+                },
                 "metadata": {
                     "plan_id": plan_id,
                     "plan_name": plan_name,
