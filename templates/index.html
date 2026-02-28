@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Теплоконтроль — онлайн мониторинг теплоснабжения</title>
+  <title>ООО "НОВЭКОЛ" — онлайн мониторинг теплоснабжения</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
@@ -119,8 +119,34 @@
           <button type="button" class="btn btn--ghost" id="order-cancel">Отмена</button>
         </div>
 
+        <p class="order-form__offer">
+          Нажимая «Отправить заявку», вы принимаете условия
+          <a href="/offer" target="_blank">публичной оферты</a>
+        </p>
+
         <p id="order-msg" class="order-form__msg hidden"></p>
       </form>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ ACCESS ══ -->
+<section id="access" class="access">
+  <div class="container">
+    <h2 class="section-title">Как получить доступ</h2>
+    <div class="access__steps">
+      <div class="access__step">
+        <div class="access__step-num">1</div>
+        <p>Выберите тариф и заполните форму заявки</p>
+      </div>
+      <div class="access__step">
+        <div class="access__step-num">2</div>
+        <p>Для платных тарифов — перейдите к оплате на странице ЮКасса</p>
+      </div>
+      <div class="access__step">
+        <div class="access__step-num">3</div>
+        <p>После подтверждения оплаты данные для входа придут на ваш email в течение&nbsp;15&nbsp;минут</p>
+      </div>
     </div>
   </div>
 </section>
@@ -133,7 +159,14 @@
     </a>
     <a href="mailto:{{ contacts.email }}">{{ contacts.email }}</a>
   </div>
-  <p class="footer__copy">&copy; 2026 Теплоконтроль. Все права защищены.</p>
+  <div class="footer__legal">
+    <p>{{ contacts.legal_name }} &nbsp;|&nbsp; ИНН&nbsp;{{ contacts.inn }} &nbsp;|&nbsp; КПП&nbsp;{{ contacts.kpp }} &nbsp;|&nbsp; ОГРН&nbsp;{{ contacts.ogrn }}</p>
+    <p>{{ contacts.address }}</p>
+  </div>
+  <p class="footer__copy">
+    &copy; 2026 ООО "НОВЭКОЛ". Все права защищены.
+    &nbsp;<a href="/offer" class="footer__offer-link">Публичная оферта</a>
+  </p>
 </footer>
 
 <script src="/static/main.js"></script>

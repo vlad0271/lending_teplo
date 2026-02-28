@@ -104,7 +104,9 @@ function scrollToSection(sectionId) {
       const resp = await fetch('/order', { method: 'POST', body: data });
       const json = await resp.json();
 
-      if (resp.ok && json.ok) {
+      if (resp.ok && json.redirect_url) {
+        window.location.href = json.redirect_url;
+      } else if (resp.ok && json.ok) {
         showMsg(json.message || 'Заявка принята!', 'success');
         form.reset();
         fPlanId.value = '';

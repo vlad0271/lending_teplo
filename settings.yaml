@@ -1,6 +1,11 @@
 contacts:
   phone: "+7 (800) 000-00-00"
   email: "info@teplo-monitor.ru"
+  legal_name: "ООО «НОВЭКОЛ»"
+  inn: "7722739428"
+  kpp: "772201001"
+  ogrn: "1117746120271"
+  address: "109052, г. Москва, ул. Нижегородская, д. 70, корп. 2, этаж 1, пом. 2, офис 6"
 
 pain_points:
   - icon: "🌡️"
