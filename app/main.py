@@ -7,11 +7,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
+import httpx
 import yookassa
 from yookassa import Payment
 
 from app import config
-from app.email_utils import send_order_email
+from app.email_utils import send_order_email, send_access_email
 
 logger = logging.getLogger(__name__)
 
@@ -178,12 +179,39 @@ async def payment_callback(request: Request):
         return JSONResponse({"ok": True})
 
     meta = payment.metadata or {}
+    customer_email = meta.get("customer_email", "")
+    customer_name = meta.get("customer_name", "")
+    plan_name = meta.get("plan_name", "")
+    plan_id = meta.get("plan_id", "")
+
     send_order_email(
-        plan_name=meta.get("plan_name", ""),
-        name=meta.get("customer_name", ""),
+        plan_name=plan_name,
+        name=customer_name,
         phone=meta.get("customer_phone", ""),
-        email=meta.get("customer_email", ""),
+        email=customer_email,
         payment_id=payment_id,
     )
+
+    # Выдать токен доступа к stampim.space
+    if customer_email and config.heat_monitor_url and config.heat_monitor_api_key:
+        token = str(uuid.uuid4())
+        access_url = f"{config.heat_monitor_url}?token={token}"
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(
+                    f"{config.heat_monitor_url}/internal/add-token",
+                    json={"token": token, "email": customer_email, "plan_id": plan_id},
+                    headers={"X-Internal-Key": config.heat_monitor_api_key},
+                )
+                resp.raise_for_status()
+            send_access_email(
+                to_email=customer_email,
+                name=customer_name,
+                plan_name=plan_name,
+                access_url=access_url,
+            )
+            logger.info("Токен доступа выдан для %s", customer_email)
+        except Exception as exc:
+            logger.error("Ошибка выдачи токена доступа для %s: %s", customer_email, exc)
 
     return JSONResponse({"ok": True})

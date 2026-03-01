@@ -26,3 +26,7 @@ smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
 smtp_user: str = os.getenv("SMTP_USER", "")
 smtp_password: str = os.getenv("SMTP_PASSWORD", "")
 admin_email: str = os.getenv("ADMIN_EMAIL", "")
+
+# stampim.space (heat_monitor)
+heat_monitor_url: str = os.getenv("HEAT_MONITOR_URL", "")
+heat_monitor_api_key: str = os.getenv("HEAT_MONITOR_API_KEY", "")

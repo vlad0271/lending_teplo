@@ -50,3 +50,42 @@ def send_order_email(
         logger.info("Email отправлен на %s", config.admin_email)
     except Exception as exc:
         logger.error("Ошибка отправки email: %s", exc)
+
+
+def send_access_email(
+    to_email: str,
+    name: str,
+    plan_name: str,
+    access_url: str,
+) -> None:
+    """Отправляет подписчику письмо с персональной ссылкой доступа."""
+    if not config.smtp_user:
+        logger.warning("SMTP не настроен — письмо подписчику не отправлено")
+        return
+
+    subject = f"Ваш доступ к сервису мониторинга теплоснабжения"
+    body = (
+        f"Здравствуйте, {name}!\n\n"
+        f"Ваша подписка «{plan_name}» успешно активирована.\n\n"
+        f"Ссылка для входа в сервис:\n{access_url}\n\n"
+        f"Это персональная ссылка — не передавайте её третьим лицам.\n"
+        f"Ссылка сохраняется в браузере, повторный вход происходит автоматически.\n\n"
+        f"Если возникнут вопросы — напишите нам: {config.admin_email}\n\n"
+        f"С уважением,\nКоманда stampim.shop"
+    )
+
+    msg = MIMEMultipart()
+    msg["From"] = config.smtp_user
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    try:
+        with smtplib.SMTP(config.smtp_host, config.smtp_port, timeout=10) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(config.smtp_user, config.smtp_password)
+            server.sendmail(config.smtp_user, to_email, msg.as_string())
+        logger.info("Письмо с доступом отправлено на %s", to_email)
+    except Exception as exc:
+        logger.error("Ошибка отправки письма подписчику: %s", exc)
