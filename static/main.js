@@ -182,9 +182,10 @@ function scrollToSection(sectionId) {
 
     const name  = document.getElementById('f-name').value.trim();
     const phone = document.getElementById('f-phone').value.trim();
+    const email = document.getElementById('f-email').value.trim();
 
-    if (!name || !phone) {
-      showMsg('Пожалуйста, заполните обязательные поля (имя и телефон).', 'error');
+    if (!name || !phone || !email) {
+      showMsg('Пожалуйста, заполните обязательные поля: имя, телефон и email.', 'error');
       return;
     }
 

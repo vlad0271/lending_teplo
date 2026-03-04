@@ -79,8 +79,25 @@ async def order(
             break
 
     if price == 0:
-        # Бесплатный тариф — только собираем контакты
         send_order_email(plan_name, name, phone, email)
+        # Выдаём токен доступа если есть email и выбранный адрес
+        if email and selected_nodes and config.heat_monitor_url and config.heat_monitor_api_key:
+            token = str(uuid.uuid4())
+            access_url = f"{config.heat_monitor_url}?token={token}"
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    resp = await client.post(
+                        f"{config.heat_monitor_url}/internal/add-token",
+                        json={"token": token, "email": email, "plan_id": plan_id, "days": 30,
+                              "node_ids": ",".join(selected_nodes)},
+                        headers={"X-Internal-Key": config.heat_monitor_api_key},
+                    )
+                    resp.raise_for_status()
+                send_access_email(to_email=email, name=name, plan_name=plan_name, access_url=access_url)
+                logger.info("Бесплатный токен выдан для %s, узлы: %s", email, selected_nodes)
+                return JSONResponse({"ok": True, "message": "Доступ открыт! Ссылка отправлена на ваш email."})
+            except Exception as exc:
+                logger.error("Ошибка выдачи токена для бесплатного тарифа: %s", exc)
         return JSONResponse({"ok": True, "message": "Заявка принята! Мы свяжемся с вами."})
 
     # Платный тариф — создаём платёж ЮКасса
