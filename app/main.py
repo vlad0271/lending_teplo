@@ -200,7 +200,7 @@ async def payment_callback(request: Request):
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(
                     f"{config.heat_monitor_url}/internal/add-token",
-                    json={"token": token, "email": customer_email, "plan_id": plan_id},
+                    json={"token": token, "email": customer_email, "plan_id": plan_id, "days": 30},
                     headers={"X-Internal-Key": config.heat_monitor_api_key},
                 )
                 resp.raise_for_status()
