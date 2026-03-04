@@ -1,3 +1,4 @@
+import subprocess
 import uuid
 import logging
 
@@ -17,6 +18,11 @@ from app.email_utils import send_order_email, send_access_email
 logger = logging.getLogger(__name__)
 
 BASE = Path(__file__).parent.parent
+
+try:
+    _ver = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=BASE).decode().strip()
+except Exception:
+    _ver = "0"
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
@@ -42,6 +48,7 @@ async def index(request: Request):
             "contacts": config.settings["contacts"],
             "pain_points": config.settings["pain_points"],
             "plans": config.settings["plans"],
+            "ver": _ver,
         },
     )
 
@@ -224,7 +231,8 @@ async def payment_callback(request: Request):
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(
                     f"{config.heat_monitor_url}/internal/add-token",
-                    json={"token": token, "email": customer_email, "plan_id": plan_id, "days": 30},
+                    json={"token": token, "email": customer_email, "plan_id": plan_id, "days": 30,
+                          "node_ids": meta.get("node_ids", "")},
                     headers={"X-Internal-Key": config.heat_monitor_api_key},
                 )
                 resp.raise_for_status()
