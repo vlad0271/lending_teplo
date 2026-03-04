@@ -28,6 +28,11 @@ if config.yookassa_shop_id and config.yookassa_secret_key:
     yookassa.Configuration.secret_key = config.yookassa_secret_key
 
 
+@app.get("/api/nodes")
+async def get_nodes():
+    return config.nodes
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse(
@@ -48,10 +53,15 @@ async def order(
     name: str = Form(...),
     phone: str = Form(...),
     email: str = Form(""),
+    node_ids: str = Form(""),
 ):
+    # Разбираем выбранные адреса
+    selected_nodes = [n.strip() for n in node_ids.split(",") if n.strip()] if node_ids else []
+    node_count = max(1, len(selected_nodes))
+
     logger.info(
-        "[ORDER] plan=%s (%s), name=%s, phone=%s, email=%s",
-        plan_id, plan_name, name, phone, email,
+        "[ORDER] plan=%s (%s), name=%s, phone=%s, email=%s, nodes=%s",
+        plan_id, plan_name, name, phone, email, selected_nodes,
     )
 
     # Найти цену тарифа из настроек
@@ -84,22 +94,24 @@ async def order(
     if email:
         customer["email"] = email
 
+    total_price = price * node_count
+
     try:
         payment = Payment.create(
             {
-                "amount": {"value": f"{price:.2f}", "currency": "RUB"},
+                "amount": {"value": f"{total_price:.2f}", "currency": "RUB"},
                 "confirmation": {
                     "type": "redirect",
                     "return_url": f"{config.site_url}/payment/success",
                 },
                 "capture": True,
-                "description": f"Подписка «{plan_name}» — {name}",
+                "description": f"Подписка «{plan_name}» × {node_count} адр. — {name}",
                 "receipt": {
                     "customer": customer,
                     "items": [
                         {
                             "description": f"Подписка «{plan_name}»",
-                            "quantity": "1.00",
+                            "quantity": str(node_count),
                             "amount": {"value": f"{price:.2f}", "currency": "RUB"},
                             "vat_code": 7,
                             "payment_mode": "full_payment",
@@ -113,6 +125,8 @@ async def order(
                     "customer_name": name,
                     "customer_phone": phone,
                     "customer_email": email,
+                    "node_ids": ",".join(selected_nodes),
+                    "node_count": str(node_count),
                 },
             },
             str(uuid.uuid4()),

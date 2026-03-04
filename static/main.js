@@ -29,26 +29,119 @@ function scrollToSection(sectionId) {
 
 /* ── Plan selection & order form ───────────────────── */
 (function () {
-  const planCards   = document.querySelectorAll('.plan-card');
-  const formWrap    = document.getElementById('order-form-wrap');
-  const form        = document.getElementById('order-form');
-  const cancelBtn   = document.getElementById('order-cancel');
-  const msgEl       = document.getElementById('order-msg');
+  const planCards      = document.querySelectorAll('.plan-card');
+  const formWrap       = document.getElementById('order-form-wrap');
+  const form           = document.getElementById('order-form');
+  const cancelBtn      = document.getElementById('order-cancel');
+  const msgEl          = document.getElementById('order-msg');
+  const submitBtn      = form.querySelector('[type="submit"]');
 
-  const fPlanId     = document.getElementById('f-plan-id');
-  const fPlanName   = document.getElementById('f-plan-name');
-  const fPlanLabel  = document.getElementById('f-plan-label');
+  const fPlanId        = document.getElementById('f-plan-id');
+  const fPlanName      = document.getElementById('f-plan-name');
+  const fPlanLabel     = document.getElementById('f-plan-label');
+  const fNodeIds       = document.getElementById('f-node-ids');
 
-  function openForm(card) {
-    fPlanId.value    = card.dataset.planId;
-    fPlanName.value  = card.dataset.planName;
-    fPlanLabel.textContent = card.dataset.planName + ' — ' + card.dataset.planPrice;
+  const addrSection    = document.getElementById('address-section');
+  const addrSectionLbl = document.getElementById('addr-section-label');
+  const addrSearch     = document.getElementById('addr-search');
+  const addrList       = document.getElementById('addr-list');
+  const addrSummary    = document.getElementById('addr-summary');
 
-    // Reset state
-    form.reset();
+  let nodesCache       = null;
+  let currentPriceVal  = 0;
+  let isPaid           = false;
+
+  /* ── Load nodes from API (once) ── */
+  async function loadNodes() {
+    if (nodesCache !== null) return nodesCache;
+    try {
+      const resp = await fetch('/api/nodes');
+      nodesCache = await resp.json();
+    } catch {
+      nodesCache = [];
+    }
+    return nodesCache;
+  }
+
+  /* ── Render address list (checkboxes for paid, radio for free) ── */
+  function renderAddresses(nodes, multiSelect) {
+    const inputType = multiSelect ? 'checkbox' : 'radio';
+    addrList.innerHTML = nodes.map(function (n) {
+      return (
+        '<label class="addr-item" data-addr="' + n.address.toLowerCase() + '">' +
+          '<input type="' + inputType + '" class="addr-input" name="addr_pick" value="' + n.id + '" />' +
+          '<span>' + n.address + '</span>' +
+        '</label>'
+      );
+    }).join('');
+
+    addrList.querySelectorAll('.addr-input').forEach(function (inp) {
+      inp.addEventListener('change', updateSummary);
+    });
+    updateSummary();
+  }
+
+  /* ── Update price summary ── */
+  function updateSummary() {
+    const checked = addrList.querySelectorAll('.addr-input:checked');
+    const count   = checked.length;
+
+    fNodeIds.value = Array.from(checked).map(function (inp) { return inp.value; }).join(',');
+
+    if (count === 0) {
+      addrSummary.textContent = isPaid ? 'Выберите хотя бы один адрес' : 'Выберите адрес';
+      addrSummary.classList.remove('addr-summary--active');
+    } else if (!isPaid) {
+      const label = checked[0].closest('.addr-item').querySelector('span').textContent;
+      addrSummary.textContent = 'Выбран: ' + label;
+      addrSummary.classList.add('addr-summary--active');
+    } else {
+      const total = currentPriceVal * count;
+      addrSummary.textContent =
+        'Выбрано: ' + count + '\u00a0адр. × ' +
+        currentPriceVal.toLocaleString('ru-RU') + '\u00a0₽ = ' +
+        total.toLocaleString('ru-RU') + '\u00a0₽/мес';
+      addrSummary.classList.add('addr-summary--active');
+    }
+  }
+
+  /* ── Address search filter ── */
+  addrSearch.addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    addrList.querySelectorAll('.addr-item').forEach(function (item) {
+      const match = !q || item.dataset.addr.includes(q);
+      item.classList.toggle('addr-item--hidden', !match);
+    });
+  });
+
+  /* ── Open form ── */
+  async function openForm(card) {
+    currentPriceVal = parseInt(card.dataset.planPriceValue, 10) || 0;
+    isPaid          = currentPriceVal > 0;
+
     fPlanId.value   = card.dataset.planId;
     fPlanName.value = card.dataset.planName;
+    fPlanLabel.textContent = card.dataset.planName + ' — ' + card.dataset.planPrice;
+
+    form.reset();
+    // restore hidden values cleared by reset
+    fPlanId.value   = card.dataset.planId;
+    fPlanName.value = card.dataset.planName;
+    fNodeIds.value  = '';
+    addrSearch.value = '';
     hideMsg();
+
+    submitBtn.textContent = isPaid ? 'Перейти к оплате' : 'Отправить заявку';
+
+    addrSectionLbl.innerHTML = isPaid
+      ? 'Выберите адрес(а) домов <span class="req">*</span>'
+      : 'Выберите адрес дома <span class="req">*</span>';
+    addrSection.classList.remove('hidden');
+    addrList.innerHTML = '<p class="addr-list__loading">Загрузка адресов…</p>';
+    addrSummary.textContent = isPaid ? 'Выберите хотя бы один адрес' : 'Выберите адрес';
+    addrSummary.classList.remove('addr-summary--active');
+    const nodes = await loadNodes();
+    renderAddresses(nodes, isPaid);
 
     formWrap.classList.remove('hidden');
     formWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -69,7 +162,7 @@ function scrollToSection(sectionId) {
     msgEl.textContent = '';
   }
 
-  // Click on plan card (but not on inner button — handled separately)
+  /* ── Plan card clicks ── */
   planCards.forEach(function (card) {
     const btn = card.querySelector('.plan-card__btn');
     btn.addEventListener('click', function (e) {
@@ -83,6 +176,7 @@ function scrollToSection(sectionId) {
 
   cancelBtn.addEventListener('click', closeForm);
 
+  /* ── Form submit ── */
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
@@ -94,7 +188,12 @@ function scrollToSection(sectionId) {
       return;
     }
 
-    const submitBtn = form.querySelector('[type="submit"]');
+    if (isPaid && !fNodeIds.value) {
+      showMsg('Выберите хотя бы один адрес для подключения.', 'error');
+      addrSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = 'Отправка…';
     hideMsg();
@@ -118,7 +217,7 @@ function scrollToSection(sectionId) {
       showMsg('Нет соединения. Проверьте интернет и попробуйте ещё раз.', 'error');
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Отправить заявку';
+      submitBtn.textContent = isPaid ? 'Перейти к оплате' : 'Отправить заявку';
     }
   });
 })();

@@ -71,7 +71,8 @@
       <div class="plan-card {% if plan.highlight %}plan-card--highlight{% endif %}"
            data-plan-id="{{ plan.id }}"
            data-plan-name="{{ plan.name }}"
-           data-plan-price="{{ plan.price }}">
+           data-plan-price="{{ plan.price }}"
+           data-plan-price-value="{{ plan.price_value }}">
         {% if plan.highlight %}
         <div class="plan-card__badge">Популярный</div>
         {% endif %}
@@ -98,6 +99,17 @@
         <h3 class="order-form__title">
           Оформление тарифа: <span id="f-plan-label"></span>
         </h3>
+
+        <!-- Выбор адресов (только для платных тарифов) -->
+        <div id="address-section" class="addr-section hidden">
+          <p class="addr-section__label" id="addr-section-label">Выберите адрес(а) домов <span class="req">*</span></p>
+          <input type="text" id="addr-search" class="addr-search" placeholder="Поиск по адресу…" autocomplete="off" />
+          <div id="addr-list" class="addr-list">
+            <p class="addr-list__loading">Загрузка адресов…</p>
+          </div>
+          <div id="addr-summary" class="addr-summary">Выберите хотя бы один адрес</div>
+          <input type="hidden" name="node_ids" id="f-node-ids" />
+        </div>
 
         <div class="order-form__fields">
           <label class="field">
