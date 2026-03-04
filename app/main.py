@@ -74,6 +74,16 @@ async def order(
             status_code=503,
         )
 
+    # Нормализуем телефон в E.164 (+7XXXXXXXXXX) для ЮКасса
+    phone_digits = "".join(c for c in phone if c.isdigit())
+    if phone_digits.startswith("8") and len(phone_digits) == 11:
+        phone_digits = "7" + phone_digits[1:]
+    phone_e164 = "+" + phone_digits if phone_digits else phone
+
+    customer = {"phone": phone_e164}
+    if email:
+        customer["email"] = email
+
     try:
         payment = Payment.create(
             {
@@ -85,7 +95,7 @@ async def order(
                 "capture": True,
                 "description": f"Подписка «{plan_name}» — {name}",
                 "receipt": {
-                    "customer": {"email": email, "phone": phone},
+                    "customer": customer,
                     "items": [
                         {
                             "description": f"Подписка «{plan_name}»",
