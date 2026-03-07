@@ -166,9 +166,6 @@
 <!-- ══════════════════════════════════════════ FOOTER ══ -->
 <footer class="footer">
   <div class="footer__contacts">
-    <a href="tel:{{ contacts.phone | replace(' ', '') | replace('(', '') | replace(')', '') | replace('-', '') }}">
-      {{ contacts.phone }}
-    </a>
     <a href="mailto:{{ contacts.email }}">{{ contacts.email }}</a>
   </div>
   <div class="footer__legal">
