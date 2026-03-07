@@ -1,6 +1,7 @@
 import subprocess
 import uuid
 import logging
+from datetime import datetime
 
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -82,15 +83,36 @@ async def order(
         send_order_email(plan_name, name, phone, email)
         # Выдаём токен доступа если есть email и выбранный адрес
         if email and selected_nodes and config.heat_monitor_url and config.heat_monitor_api_key:
-            token = str(uuid.uuid4())
-            access_url = f"{config.heat_monitor_url}?token={token}"
+            current_month = datetime.now().strftime("%Y-%m")
+            internal_headers = {"X-Internal-Key": config.heat_monitor_api_key}
             try:
                 async with httpx.AsyncClient(timeout=10.0) as client:
+                    # Проверяем лимит: не более 3 бесплатных токенов в месяц
+                    count_resp = await client.get(
+                        f"{config.heat_monitor_url}/internal/free-token-count",
+                        params={"email": email, "month": current_month},
+                        headers=internal_headers,
+                    )
+                    count_resp.raise_for_status()
+                    if count_resp.json().get("count", 0) >= 3:
+                        return JSONResponse({
+                            "ok": False,
+                            "message": "Лимит бесплатных запросов на этот месяц исчерпан (3 из 3). Попробуйте в следующем месяце.",
+                        })
+                    # Отзываем старые бесплатные токены этого email
+                    await client.post(
+                        f"{config.heat_monitor_url}/internal/revoke-by-email",
+                        json={"email": email},
+                        headers=internal_headers,
+                    )
+                    # Выдаём новый токен
+                    token = str(uuid.uuid4())
+                    access_url = f"{config.heat_monitor_url}?token={token}"
                     resp = await client.post(
                         f"{config.heat_monitor_url}/internal/add-token",
                         json={"token": token, "email": email, "plan_id": plan_id, "days": 30,
-                              "node_ids": ",".join(selected_nodes)},
-                        headers={"X-Internal-Key": config.heat_monitor_api_key},
+                              "node_ids": ",".join(selected_nodes), "is_free": True},
+                        headers=internal_headers,
                     )
                     resp.raise_for_status()
                 send_access_email(to_email=email, name=name, plan_name=plan_name, access_url=access_url)
