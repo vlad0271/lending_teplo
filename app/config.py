@@ -48,3 +48,10 @@ def _load_nodes() -> list:
 
 
 nodes: list = _load_nodes()
+
+# Промокоды
+promo_codes: dict = {
+    p["code"].upper(): p["discount_percent"]
+    for p in settings.get("promo_codes", [])
+    if p.get("active", True)
+}

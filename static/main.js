@@ -41,6 +41,12 @@ function scrollToSection(sectionId) {
   const fPlanLabel     = document.getElementById('f-plan-label');
   const fNodeIds       = document.getElementById('f-node-ids');
 
+  const promoSection   = document.getElementById('promo-section');
+  const promoInput     = document.getElementById('promo-input');
+  const promoApplyBtn  = document.getElementById('promo-apply-btn');
+  const promoMsg       = document.getElementById('promo-msg');
+  const fPromoCode     = document.getElementById('f-promo-code');
+
   const addrSection    = document.getElementById('address-section');
   const addrSectionLbl = document.getElementById('addr-section-label');
   const addrSearch     = document.getElementById('addr-search');
@@ -50,6 +56,7 @@ function scrollToSection(sectionId) {
   let nodesCache       = null;
   let currentPriceVal  = 0;
   let isPaid           = false;
+  let appliedDiscount  = 0;  // процент скидки (0 = нет промокода)
 
   /* ── Load nodes from API (once) ── */
   async function loadNodes() {
@@ -96,10 +103,13 @@ function scrollToSection(sectionId) {
       addrSummary.textContent = 'Выбран: ' + label;
       addrSummary.classList.add('addr-summary--active');
     } else {
-      const total = currentPriceVal * count;
+      const pricePerAddr = appliedDiscount
+        ? Math.round(currentPriceVal * (100 - appliedDiscount) / 100)
+        : currentPriceVal;
+      const total = pricePerAddr * count;
       addrSummary.textContent =
         'Выбрано: ' + count + '\u00a0адр. × ' +
-        currentPriceVal.toLocaleString('ru-RU') + '\u00a0₽ = ' +
+        pricePerAddr.toLocaleString('ru-RU') + '\u00a0₽ = ' +
         total.toLocaleString('ru-RU') + '\u00a0₽/мес';
       addrSummary.classList.add('addr-summary--active');
     }
@@ -130,8 +140,15 @@ function scrollToSection(sectionId) {
     fNodeIds.value  = '';
     addrSearch.value = '';
     hideMsg();
+    resetPromo();
 
     submitBtn.textContent = isPaid ? 'Перейти к оплате' : 'Отправить заявку';
+
+    if (isPaid) {
+      promoSection.classList.remove('hidden');
+    } else {
+      promoSection.classList.add('hidden');
+    }
 
     addrSectionLbl.innerHTML = isPaid
       ? 'Выберите адрес(а) домов <span class="req">*</span>'
@@ -146,6 +163,50 @@ function scrollToSection(sectionId) {
     formWrap.classList.remove('hidden');
     formWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+
+  function resetPromo() {
+    appliedDiscount = 0;
+    promoInput.value = '';
+    fPromoCode.value = '';
+    promoMsg.className = 'promo-msg hidden';
+    promoMsg.textContent = '';
+    promoApplyBtn.disabled = false;
+    promoApplyBtn.textContent = 'Применить';
+  }
+
+  function showPromoMsg(text, type) {
+    promoMsg.textContent = text;
+    promoMsg.className = 'promo-msg promo-msg--' + type;
+  }
+
+  promoApplyBtn.addEventListener('click', async function () {
+    const code = promoInput.value.trim();
+    if (!code) { showPromoMsg('Введите промокод', 'error'); return; }
+    promoApplyBtn.disabled = true;
+    promoApplyBtn.textContent = '…';
+    try {
+      const resp = await fetch('/promo/check?code=' + encodeURIComponent(code));
+      const json = await resp.json();
+      if (json.valid) {
+        appliedDiscount = json.discount_percent;
+        fPromoCode.value = code;
+        showPromoMsg(json.message, 'success');
+        promoApplyBtn.textContent = 'Применён';
+        updateSummary();
+      } else {
+        appliedDiscount = 0;
+        fPromoCode.value = '';
+        showPromoMsg(json.message, 'error');
+        promoApplyBtn.disabled = false;
+        promoApplyBtn.textContent = 'Применить';
+        updateSummary();
+      }
+    } catch {
+      showPromoMsg('Ошибка проверки промокода', 'error');
+      promoApplyBtn.disabled = false;
+      promoApplyBtn.textContent = 'Применить';
+    }
+  });
 
   function closeForm() {
     formWrap.classList.add('hidden');

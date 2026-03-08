@@ -126,6 +126,17 @@
           </label>
         </div>
 
+        <!-- Промокод (только для платных тарифов) -->
+        <div id="promo-section" class="promo-section hidden">
+          <p class="promo-section__label">Промокод</p>
+          <div class="promo-section__row">
+            <input type="text" id="promo-input" class="promo-input" placeholder="Введите промокод" autocomplete="off" />
+            <button type="button" id="promo-apply-btn" class="btn btn--ghost btn--sm">Применить</button>
+          </div>
+          <p id="promo-msg" class="promo-msg hidden"></p>
+          <input type="hidden" name="promo_code" id="f-promo-code" value="" />
+        </div>
+
         <div class="order-form__actions">
           <button type="submit" class="btn btn--primary">Отправить заявку</button>
           <button type="button" class="btn btn--ghost" id="order-cancel">Отмена</button>

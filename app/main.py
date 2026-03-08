@@ -40,6 +40,18 @@ async def get_nodes():
     return config.nodes
 
 
+@app.get("/promo/check")
+async def promo_check(code: str = ""):
+    code = code.strip().upper()
+    if not code:
+        return JSONResponse({"valid": False, "message": "Введите промокод"})
+    discount = config.promo_codes.get(code)
+    if discount is None:
+        return JSONResponse({"valid": False, "message": "Промокод не найден"})
+    return JSONResponse({"valid": True, "discount_percent": discount,
+                         "message": f"Скидка {discount}% применена"})
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse(
@@ -62,6 +74,7 @@ async def order(
     phone: str = Form(...),
     email: str = Form(""),
     node_ids: str = Form(""),
+    promo_code: str = Form(""),
 ):
     # Разбираем выбранные адреса
     selected_nodes = [n.strip() for n in node_ids.split(",") if n.strip()] if node_ids else []
@@ -142,6 +155,15 @@ async def order(
 
     total_price = price * node_count
 
+    # Применяем промокод
+    discount_percent = 0
+    promo_code = promo_code.strip().upper()
+    if promo_code:
+        discount_percent = config.promo_codes.get(promo_code, 0)
+        if discount_percent:
+            total_price = round(total_price * (100 - discount_percent) / 100, 2)
+            logger.info("[PROMO] code=%s discount=%s%% total=%s", promo_code, discount_percent, total_price)
+
     try:
         payment = Payment.create(
             {
@@ -151,7 +173,8 @@ async def order(
                     "return_url": f"{config.site_url}/payment/success",
                 },
                 "capture": True,
-                "description": f"Подписка «{plan_name}» × {node_count} адр. — {name}",
+                "description": f"Подписка «{plan_name}» × {node_count} адр. — {name}"
+                               + (f" (промокод {promo_code} -{discount_percent}%)" if discount_percent else ""),
                 "receipt": {
                     "customer": customer,
                     "items": [
@@ -173,6 +196,8 @@ async def order(
                     "customer_email": email,
                     "node_ids": ",".join(selected_nodes),
                     "node_count": str(node_count),
+                    "promo_code": promo_code,
+                    "discount_percent": str(discount_percent),
                 },
             },
             str(uuid.uuid4()),
