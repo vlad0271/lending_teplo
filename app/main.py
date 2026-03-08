@@ -164,6 +164,9 @@ async def order(
             total_price = round(total_price * (100 - discount_percent) / 100, 2)
             logger.info("[PROMO] code=%s discount=%s%% total=%s", promo_code, discount_percent, total_price)
 
+    # Цена единицы для чека — сумма позиций должна совпадать с total_price
+    unit_price = round(total_price / node_count, 2) if node_count else total_price
+
     try:
         payment = Payment.create(
             {
@@ -181,7 +184,7 @@ async def order(
                         {
                             "description": f"Подписка «{plan_name}»",
                             "quantity": str(node_count),
-                            "amount": {"value": f"{price:.2f}", "currency": "RUB"},
+                            "amount": {"value": f"{unit_price:.2f}", "currency": "RUB"},
                             "vat_code": 7,
                             "payment_mode": "full_payment",
                             "payment_subject": "service",
